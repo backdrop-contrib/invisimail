@@ -1,0 +1,135 @@
+<?php
+
+// $Id$
+
+/**
+ * @file
+ * This module provides a filter that will search content for email addresses
+ * and replace them with their ascii equivalents before display. This is not
+ * a complete protection from spam harvesters, but it is some help.
+ */
+
+/**
+ * Implementation of hook_help().
+ *
+ */
+function invisimail_help($section) {
+  switch ($section) {
+    case 'admin/modules#description':
+      // This description is shown in the listing at admin/modules.
+      $output = t('Attempts to thwart spam-bots by encoding email addresses.');
+      if (module_exist('invisimail')) {
+        $output .= t(' <a href="%url">more help</a>', array('%url' => url('admin/help/invisimail')));
+      }
+      return $output;
+    case 'admin/help#invisimail':
+      return t('<p>The invisimail module privides a filter to hide email addresses from email harvesting spam-bots.</p><p>How it works: Invisimail scans content for email addresses and then converts each character of the address to its ASCII-code equivalent. The email address will appear normally on the page, but the source html will not appear as an email address. For even more security, the filter can use a JavaScript write command to further obscure the email address.</p><p>For example:<br /><i>you@example.com</i> will appear in the html source as: <div style="font-family:courier;border:1px solid #666;padding: 5px">&amp;#121;&amp;#111;&amp;#117;&amp;#64;&amp;#101;&amp;#120;&amp;#97;&amp;#109;&amp;#112;&amp;#108;&amp;#101;&amp;#46;&amp;#99;&amp;#111;&amp;#109;</div></p><p>With the JavaScript and Auto-link options enabled, the source would become: <div style="font-family:courier;border:1px solid #666;padding: 5px">&lt;script type=\'text/javascript\'&gt;&lt;!--<br />
+document.write(\'&lt;a href= "&amp;#109;&amp;#97;&amp;#105;&amp;#108;&amp;#116;&amp;#111;&amp;#58;\' + \'&amp;#121;&amp;#111;&amp;#117;&amp;#64;\' + \'&amp;#101;&amp;#120;&amp;#97;&amp;#109;&amp;#112;&amp;#108;&amp;#101;&amp;#46;\' + \'&amp;#99;&amp;#111;&amp;#109;\' + \'"&gt;\' + \'&amp;#121;&amp;#111;&amp;#117;&amp;#64;\' + \'&amp;#101;&amp;#120;&amp;#97;&amp;#109;&amp;#112;&amp;#108;&amp;#101;&amp;#46;\' + \'&amp;#99;&amp;#111;&amp;#109;\' + \'&lt;/a&gt;\');<br />
+//--&gt;<br />
+&lt;/script&gt;</div></p><p>Doesn\'t look like an email address, does it?</p><p>Of course the best protection against spam-bots is to not publish an email address at all, but on a community site some users are going to publish email addresses. Invisimail provides another level of security to keep them from recieving spam.</p><p>To configure Invisimail, select "configure" next to the <a href="%url">input format</a> you\'d like to use. Enable "Encode Email Addresses" and submit the form. Then select the "configure" tab to choose options for Invisimail.</p>', array('%url' => url('admin/filters')));
+  }
+}
+
+/**
+ * Implementation of hook_filter_tips().
+ *
+ */
+function invisimail_filter_tips($delta, $format, $long = FALSE) {
+  switch ($delta) {
+    case 0:
+      if ($long) {
+        return t('Every email address in the input text will be replaced with its ascii equivalent.');
+      }
+      break;
+  }
+}
+
+/**
+ * Implementation of hook_filter().
+ *
+ */
+function invisimail_filter($op, $delta = 0, $format = -1, $text = '') {
+  if ($op == 'list') {
+    return array(0 => t('Encode Email Addresses'));
+  }
+
+  switch ($delta) {
+
+    case 0:
+
+      switch ($op) {
+        case 'description':
+          return t('Hide email addresses from spam-bots.');
+
+        case 'prepare':
+          return $text;
+
+        case 'process':
+          return invisimail($text, $format);
+
+        case 'settings':
+          $group = form_radios(t('JavaScript'), 'invisimail_js_'.$format, variable_get('invisimail_js_'.$format, FALSE), array(FALSE => t('No JavaScript - greater compatibility'), TRUE => t('Use JavaScript - greater security')), t('Selecting "Use JavaScript" will nearly guarantee protection from spam harvesters. However email addresses will not appear for browsers without JavaScript capability.'));
+          $group .= form_radios(t('Auto-link Emails'), 'invisimail_link_'.$format, variable_get('invisimail_link_'.$format, FALSE), array(FALSE => t('Do not create links.'), TRUE => t('Automatically create links from email addresses.')), t('Selecting "Automatically create links" will convert email addresses into a clickable "mailto:" link.'));
+          return form_group(t('Invisimail Email Address Encoding filter'), $group);
+      }
+      break;
+  }
+}
+
+function invisimail($string, $format) {
+  $pattern = "!(<p>|<li>|[ \n\r\t\(])([A-Za-z0-9._-]+@[A-Za-z0-9._-]+\.[A-Za-z]{2,4})([.,]?)(?=(</p>|</li>|[ \n\r\t\)]))!i";
+  
+  // the callback needs to know what filter we're using
+  // however there's no way to hand off that variable
+  // so we'll set a global variable
+  $GLOBALS['invisimail_format'] = $format;
+
+  return preg_replace_callback($pattern, 'invisimail_callback', $string);
+ }
+
+function invisimail_callback($matches) {
+  return $matches[1] . invisimail_ascii_encode($matches[2]) . $matches[3];
+}
+
+function invisimail_ascii_encode($string) {
+  $format = $GLOBALS['invisimail_format'];
+  $js = variable_get('invisimail_js_'.$format, FALSE);
+  $link = variable_get('invisimail_link_'.$format, FALSE);
+    
+  if ($js) {
+    $output = "<script type='text/javascript'><!--
+    document.write('";
+  }
+  
+  for ($i=0; $i < strlen($string); $i++)	 {
+    $char = substr($string, $i, 1);
+    $encode .= '&#'.ord($char).';';	 	 
+    if ($js) {
+      if (in_array($char, array('.', '@'))) {
+      // break strings after ats and dots
+        $encode .= "'+'";
+      }
+    }
+  }
+  
+  if ($link && !$js) {
+    // ascii in this next line is "mailto:"
+    $output .= "<a href=\"&#109;&#97;&#105;&#108;&#116;&#111;&#58;$encode\">$encode</a>";
+  }
+  elseif ($link && $js) {
+    $output .= "<a href=\"&#109;&#97;&#105;&#108;&#116;&#111;&#58;'+'$encode'+'\">'+'$encode'+'</a>";    
+  }
+  else {
+    $output .= $encode;
+  }
+
+  if ($js) {
+    $output .= "');
+    //-->
+    </script>";
+  }
+    
+  return $output;
+} 
+
+?>
