@@ -50,7 +50,7 @@ function invisimail_filter_tips($delta, $format, $long = FALSE) {
  */
 function invisimail_filter($op, $delta = 0, $format = -1, $text = '') {
   if ($op == 'list') {
-    return array(0 => t('Encode Email Addresses'));
+    return array(0 => t('Encode email addresses'));
   }
 
   switch ($delta) {
@@ -68,9 +68,28 @@ function invisimail_filter($op, $delta = 0, $format = -1, $text = '') {
           return invisimail($text, $format);
 
         case 'settings':
-          $group = form_radios(t('JavaScript'), 'invisimail_js_'.$format, variable_get('invisimail_js_'.$format, FALSE), array(FALSE => t('No JavaScript - greater compatibility'), TRUE => t('Use JavaScript - greater security')), t('Selecting "Use JavaScript" will nearly guarantee protection from spam harvesters. However email addresses will not appear for browsers without JavaScript capability.'));
-          $group .= form_radios(t('Auto-link Emails'), 'invisimail_link_'.$format, variable_get('invisimail_link_'.$format, FALSE), array(FALSE => t('Do not create links.'), TRUE => t('Automatically create links from email addresses.')), t('Selecting "Automatically create links" will convert email addresses into a clickable "mailto:" link.'));
-          return form_group(t('Invisimail Email Address Encoding filter'), $group);
+          $form['invisimail_settings'] = array(
+            '#type' => 'fieldset',
+            '#title' => t('Invisimail email address encoding filter'),
+            '#collapsible' => true, '#collapsed' => true
+          );
+
+          $form['invisimail_settings']['invisimail_js_'.$format] = array(
+            '#type' => 'radios',
+            '#title' => t('JavaScript'),
+            '#default_value' => variable_get('invisimail_js_'.$format, FALSE),
+            '#options' => array(FALSE => t('No JavaScript - greater compatibility'), TRUE => t('Use JavaScript - greater security')),
+            '#description' => t('Selecting "Use JavaScript" will nearly guarantee protection from spam harvesters. However email addresses will not appear for browsers without JavaScript capability.'),
+          );
+
+          $form['invisimail_settings']['invisimail_link_'.$format] = array(
+            '#type' => 'radios',
+            '#title' => t('Auto-link Emails'),
+            '#default_value' => variable_get('invisimail_link_'.$format, FALSE),
+            '#options' => array(FALSE => t('Do not create links.'), TRUE => t('Automatically create links from email addresses.')),
+            '#description' => t('Selecting "Automatically create links" will convert email addresses into a clickable "mailto:" link.'),
+          );
+          return $form;
       }
       break;
   }
