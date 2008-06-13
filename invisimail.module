@@ -98,14 +98,32 @@ function invisimail($string, $format) {
  }
 
 function invisimail_callback($matches) {
-  return $matches[1] . invisimail_ascii_encode($matches[2]) . $matches[3];
-}
-
-function invisimail_ascii_encode($string) {
   $format = $GLOBALS['invisimail_format'];
   $js = variable_get('invisimail_js_'.$format, FALSE);
   $link = variable_get('invisimail_link_'.$format, FALSE);
-    
+  
+  return $matches[1] . invisimail_ascii_encode($matches[2], $js, $link) . $matches[3];
+}
+
+/**
+ * This function does the actual encoding. 
+ *
+ * @param $string
+ *   A string which contains only an email addres to be encoded. 
+ * @param $js
+ *   Optional: A boolean which sets whether Javascript is used for encoding.
+ * @param $link
+ *   Optional: A boolean which set whether the result includes a mailto link.
+ * @param $text
+ *   Optional: The text to be used for the link.
+ * @return
+ *   An ascii encoded email address. 
+ */
+function invisimail_ascii_encode($string, $js = FALSE, $link = FALSE, $text = NULL) {
+  if ($text == NULL) {
+    $text = $string;
+  }
+  
   if ($js) {
     $output = "<script type='text/javascript'><!--
     document.write('";
@@ -124,10 +142,10 @@ function invisimail_ascii_encode($string) {
   
   if ($link && !$js) {
     // ascii in this next line is "mailto:"
-    $output .= "<a href=\"&#109;&#97;&#105;&#108;&#116;&#111;&#58;$encode\">$encode</a>";
+    $output .= "<a href=\"&#109;&#97;&#105;&#108;&#116;&#111;&#58;$encode\">$text</a>";
   }
   elseif ($link && $js) {
-    $output .= "<a href=\"&#109;&#97;&#105;&#108;&#116;&#111;&#58;'+'$encode'+'\">'+'$encode'+'</a>";    
+    $output .= "<a href=\"&#109;&#97;&#105;&#108;&#116;&#111;&#58;'+'$encode'+'\">'+'$text'+'</a>";    
   }
   else {
     $output .= $encode;
@@ -140,6 +158,5 @@ function invisimail_ascii_encode($string) {
   }
     
   return $output;
-} 
+}
 
-?>
