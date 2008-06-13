@@ -192,10 +192,7 @@ function invisimail_theme() {
   return array(
     'invisimail_formatter_invisimail' => array(
       'arguments' => array(
-        'field' => NULL,
-        'item' => array(),
-        'formatter' => NULL,
-        'node' => NULL,
+        'element' => NULL,
       ),
     ),
   );
