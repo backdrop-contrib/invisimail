@@ -98,8 +98,7 @@ function invisimail_filter($op, $delta = 0, $format = -1, $text = '') {
 }
 
 function invisimail($string, $format) {
-  $pattern = "!(<p>|<li>|<br />|[ \n\r\t\(])([A-Za-z0-9._-]+@[A-Za-z0-9._-]+\.[A-Za-z]{2,4})([.,]?)(?=(</p>|</li>|<br />|[ \n\r\t\)]))!i";
-  
+  $pattern = '!(<p>|<li>|<br />|[\s\(])([A-Za-z0-9._-]+@[A-Za-z0-9._-]+\.[A-Za-z]{2,4})([.,]?)(?=(</p>|</li>|<br />|[\s/)]))!i';  
   // the callback needs to know what filter we're using
   // however there's no way to hand off that variable
   // so we'll set a global variable
