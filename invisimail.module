@@ -153,10 +153,10 @@ function invisimail_ascii_encode($string, $js = FALSE, $link = FALSE, $text = NU
   
   if ($link && !$js) {
     // ascii in this next line is "mailto:"
-    $output .= "<a href=\"&#109;&#97;&#105;&#108;&#116;&#111;&#58;$encode\">$text</a>";
+    $output .= "<a href=\"&#109;&#97;&#105;&#108;&#116;&#111;&#58;$encode\">$encode</a>";
   }
   elseif ($link && $js) {
-    $output .= "<a href=\"&#109;&#97;&#105;&#108;&#116;&#111;&#58;'+'$encode'+'\">'+'$text'+'</a>";    
+    $output .= "<a href=\"&#109;&#97;&#105;&#108;&#116;&#111;&#58;'+'$encode'+'\">'+'$encode'+'</a>";
   }
   else {
     $output .= $encode;
