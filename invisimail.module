@@ -37,7 +37,7 @@ function invisimail_menu() {
       'type' => MENU_NORMAL_ITEM,
     );
   }
-  
+
   return $items;
 }
 
@@ -90,7 +90,7 @@ function invisimail_filter($op, $delta = 0, $format = -1, $text = '') {
             '#collapsible' => true, '#collapsed' => true
           );
           $form['invisimail_settings'] += _invisimail_settings($format);
-          
+
           return $form;
       }
       break;
@@ -98,7 +98,7 @@ function invisimail_filter($op, $delta = 0, $format = -1, $text = '') {
 }
 
 function invisimail($string, $format) {
-  $pattern = '!(<p>|<li>|<br />|[\s\(])([A-Za-z0-9._-]+@[A-Za-z0-9._-]+\.[A-Za-z]{2,4})([.,]?)(?=(</p>|</li>|<br />|[\s/)]))!i';  
+  $pattern = '!(<p>|<li>|<br />|[\s\(])([A-Za-z0-9._-]+@[A-Za-z0-9._-]+\.[A-Za-z]{2,4})([.,]?)(?=(</p>|</li>|<br />|[\s/)]))!i';
   // the callback needs to know what filter we're using
   // however there's no way to hand off that variable
   // so we'll set a global variable
@@ -111,15 +111,15 @@ function invisimail_callback($matches) {
   $format = $GLOBALS['invisimail_format'];
   $js = variable_get('invisimail_js_'.$format, FALSE);
   $link = variable_get('invisimail_link_'.$format, FALSE);
-  
+
   return $matches[1] . invisimail_ascii_encode($matches[2], $js, $link) . $matches[3];
 }
 
 /**
- * This function does the actual encoding. 
+ * This function does the actual encoding.
  *
  * @param $string
- *   A string which contains only an email addres to be encoded. 
+ *   A string which contains only an email addres to be encoded.
  * @param $js
  *   Optional: A boolean which sets whether Javascript is used for encoding.
  * @param $link
@@ -127,21 +127,22 @@ function invisimail_callback($matches) {
  * @param $text
  *   Optional: The text to be used for the link.
  * @return
- *   An ascii encoded email address. 
+ *   An ascii encoded email address.
  */
 function invisimail_ascii_encode($string, $js = FALSE, $link = FALSE, $text = NULL) {
+
   if ($text == NULL) {
     $text = $string;
   }
-  
+
   if ($js) {
     $output = "<script type='text/javascript'><!--
     document.write('";
   }
-  
+
   for ($i=0; $i < strlen($string); $i++)	 {
     $char = substr($string, $i, 1);
-    $encode .= '&#'.ord($char).';';	 	 
+    $encode .= '&#'.ord($char).';';
     if ($js) {
       if (in_array($char, array('.', '@'))) {
       // break strings after ats and dots.
@@ -149,7 +150,7 @@ function invisimail_ascii_encode($string, $js = FALSE, $link = FALSE, $text = NU
       }
     }
   }
-  
+
   if ($link && !$js) {
     // ascii in this next line is "mailto:"
     $output .= "<a href=\"&#109;&#97;&#105;&#108;&#116;&#111;&#58;$encode\">$encode</a>";
@@ -166,7 +167,7 @@ function invisimail_ascii_encode($string, $js = FALSE, $link = FALSE, $text = NU
     //-->
     </script>";
   }
-    
+
   return $output;
 }
 
@@ -198,6 +199,12 @@ function invisimail_theme() {
 }
 
 function theme_invisimail_formatter_invisimail($element) {
+
+  // If there's no email address, don't bother trying to encode it.
+  if ($element['#item']['email'] == '') {
+    return;
+  }
+
   if (module_exists('invisimail')) {
     return invisimail_ascii_encode($element['#item']['email'], variable_get('invisimail_js_formatter', FALSE), variable_get('invisimail_link_formatter', FALSE));
   }
@@ -238,6 +245,6 @@ function _invisimail_settings($format) {
     '#options' => array(FALSE => t('Do not create links.'), TRUE => t('Automatically create links from email addresses.')),
     '#description' => t('Selecting "Automatically create links" will convert email addresses into a clickable "mailto:" link.'),
   );
-  
+
   return $form;
 }
