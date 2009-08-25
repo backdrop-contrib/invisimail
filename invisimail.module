@@ -275,7 +275,7 @@ function theme_invisimail_formatter_invisimail($element) {
   }
 
   if (module_exists('invisimail')) {
-    return invisimail_ascii_encode($element['#item']['email'], variable_get('invisimail_js_formatter', FALSE), variable_get('invisimail_link_formatter', FALSE));
+    return invisimail_ascii_encode($element['#item']['email'], variable_get('invisimail_js_formatter', 0), variable_get('invisimail_link_formatter', 0));
   }
   else {
     return '<a href="mailto:'. $element['#item']['email'] .'">'. check_plain($element['#item']['email']) .'</a>';
