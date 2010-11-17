@@ -217,7 +217,7 @@ function invisimail_encode_add_link($string, $js, $text) {
  *   An ascii encoded email address, optionally with link included.
  */
 function invisimail_ascii_encode($string, $js = FALSE, $link = FALSE, $text = NULL) {
-  return $link ? invisimail_encode_add_link($string, $js, $text) : _invisimail_encode_string($string, $js);
+  return $link ? invisimail_encode_add_link($string, $js, $text) : _invisimail_encode_string($string, $js, $link);
 }
 
 /**
@@ -227,12 +227,12 @@ function invisimail_ascii_encode($string, $js = FALSE, $link = FALSE, $text = NU
  * @param bool $js
  * @return string
  */
-function _invisimail_encode_string($string, $js) {
+function _invisimail_encode_string($string, $js, $link = FALSE) {
   $encode = '';
   for ($i=0; $i < strlen($string); $i++)   {
     $char = substr($string, $i, 1);
     $encode .= '&#'.ord($char).';';
-    if ($js) {
+    if ($js && $link) {
       if (in_array($char, array('.', '@'))) {
       // break strings after ats and dots.
         $encode .= "'+'";
