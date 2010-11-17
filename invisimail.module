@@ -184,17 +184,21 @@ function invisimail_callback($matches) {
 }
 
 function invisimail_encode_add_link($string, $js, $text) {
+  static $counter = 0;
   $encode = _invisimail_encode_string($string, $js);
 
   $text = is_null($text) ? $encode : $text;
 
   if ($js) {
-    $output = "<script type='text/javascript'><!--
-    document.write('";
-    $output .= '<a href="' . INVISIMAIL_MAILTO_ASCII . "'+'$encode'+'\">'+'$text'+'</a>";
-    $output .= "');
-    //-->
-    </script>";
+      $linkId = md5("mailto_link_{$counter}");
+      $counter ++;
+      $output = "<span id=\"$linkId\"></span>";
+      $output .="
+            <script type=\"text/javascript\" > <!--
+        document.getElementById('$linkId')
+                .innerHTML = '<a href=\"" . INVISIMAIL_MAILTO_ASCII . "'+'$encode'+'\">'+'"
+                . $text . "' + '</a>';"
+      ."\n // --> </script>";
   }
   else {
     $output = '<a href="' . INVISIMAIL_MAILTO_ASCII . "$encode\">$text</a>";
