@@ -111,7 +111,7 @@ function invisimail($string, $format) {
   // For the domain portion of an email addy, you can have a string domain,
   // an ipv4 address, or an ipv6 address. These three regex capture each of
   // those possibilities, respectively.
-  $domain = '(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.?)+';
+  $domain = '(?:[a-zA-Z0-9](?:[a-zA-Z0-9\-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,6}';
   $ipv4 = '[0-9]{1,3}(?:\.[0-9]{1,3}){3}';
   $ipv6 = '[0-9a-fA-F]{1,4}(?:[0-9a-fA-F]{1,4}){7}';
   // Now we stick it all together into a generalized, encapsulated, portable,
