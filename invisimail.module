@@ -59,9 +59,7 @@ function invisimail_perm() {
 function invisimail_filter_tips($delta, $format, $long = FALSE) {
   switch ($delta) {
     case 0:
-      if ($long) {
-        return t('Every email address in the input text will be replaced with its ascii equivalent.');
-      }
+      return t('Email addresses will be obfuscated in the page source to reduce the chances of being harvested by spammers.');
       break;
   }
 }
