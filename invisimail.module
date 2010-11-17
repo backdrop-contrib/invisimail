@@ -29,6 +29,8 @@ document.write(\'&lt;a href= "&amp;#109;&amp;#97;&amp;#105;&amp;#108;&amp;#116;&
  */
 function invisimail_menu() {
 
+  $items = array();
+
   // This configuration page only really makes sense if you have email field installed.
   if (module_exists('email')) {
     $items['admin/settings/invisimail'] = array(
