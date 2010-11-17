@@ -89,7 +89,8 @@ function invisimail_filter($op, $delta = 0, $format = -1, $text = '') {
           $form['invisimail_settings'] = array(
             '#type' => 'fieldset',
             '#title' => t('Invisimail email address encoding filter'),
-            '#collapsible' => true, '#collapsed' => true
+            '#collapsible' => TRUE,
+            '#collapsed' => FALSE,
           );
           $form['invisimail_settings'] += _invisimail_settings($format);
 
