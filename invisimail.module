@@ -66,7 +66,7 @@ function invisimail_invisimail_encoder_info() {
   $encoders['html_entities'] = array(
     'label' => t('HTML entities'),
     'settings callback' => 'invisimail_encoder_html_entities_settings',
-    'process callback' => '',
+    'process callback' => 'invisimail_encoder_html_entities_process',
   );
 
   return $encoders;
@@ -142,8 +142,31 @@ function invisimail_filter_info() {
   return $filters;
 }
 
-function invisimail_encode_process($text, $filter, $format) {
+function invisimail_encode_process($text, $filter, $format, $langcode, $cache, $cache_id) {
+  $encoder = invisimail_get_encoder($filter->settings['encoder']);
 
+  if (function_exists($encoder['process callback'])) {
+    return $encoder['process callback']($text, $filter, $format, $langcode, $cache, $cache_id);
+  }
+  elseif ($encoder['process callback']) {
+    // Process is required, so there's no default passthrough option here.
+    watchdog('invisimail', 'Invalid process callback: @callback', array('@callback' => $encoder['process callback']));
+    return $text;
+  }
+}
+
+function invisimail_encode_prepare($text, $filter, $format, $langcode, $cache, $cache_id) {
+  $encoder = invisimail_get_encoder($filter->settings['encoder']);
+
+  if (function_exists($encoder['prepare callback'])) {
+    return $encoder['prepare callback']($text, $filter, $format, $langcode, $cache, $cache_id);
+  }
+  elseif ($encoder['prepare callback']) {
+    watchdog('invisimail', 'Invalid prepare callback: @callback', array('@callback' => $encoder['prepare callback']));
+  }
+  else {
+    return $text;
+  }
 }
 
 /**
@@ -171,8 +194,6 @@ function invisimail_encode_settings($form, &$form_state, $filter, $format, $defa
 
 
   $encoder = invisimail_get_encoder($defaults['encoder']);
-
-  dpm($encoder);
 
   if (function_exists($encoder['settings callback'])) {
     $settings += $encoder['settings callback']($form, $form_state, $filter, $format, $defaults);
