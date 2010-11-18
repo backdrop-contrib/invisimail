@@ -59,15 +59,153 @@ function invisimail_permission() {
 }
 
 /**
- * Implementation of hook_filter_tips().
- *
+ * Implements hook_invisimail_encoder_info().
  */
-function invisimail_filter_tips($delta, $format, $long = FALSE) {
-  switch ($delta) {
-    case 0:
-      return t('Email addresses will be obfuscated in the page source to reduce the chances of being harvested by spammers.');
-      break;
+function invisimail_invisimail_encoder_info() {
+
+  $encoders['html_entities'] = array(
+    'label' => t('HTML entities'),
+    'settings callback' => 'invisimail_encoder_html_entities_settings',
+    'process callback' => '',
+  );
+
+  return $encoders;
+
+}
+
+/**
+ * Gets a list of all encoders defined in the system.
+ *
+ * Encoders are defined by hook_invisimail_encoder_info() and use nearly the
+ * same keys as filter definitions.  The main difference is the "label" key is
+ * used in place of "title" to avoid confusion.  All callbacks will be called
+ * from common callbacks defined by invisimail.
+ *
+ * @return array
+ *   An array of all defined encoders.
+ */
+function invisimail_get_encoders() {
+
+  $encoders = &drupal_static(__FUNCTION__, array());
+
+  if (empty($encoders)) {
+    $encoders = module_invoke_all('invisimail_encoder_info');
+
+    foreach (array_keys($encoders) as $encoder) {
+      $encoders[$encoder] += array(
+        'settings callback' => '',
+        'prepare callback' => '',
+        'process callback' => '',
+        'default settings' => array('link' => 0),
+      );
+    }
+
+    drupal_alter('invisimail_encoder_info', $encoders);
   }
+  
+  return $encoders;
+}
+
+/**
+ * Gets the definition of the specified encoder.
+ *
+ * @param string $encoder
+ *   The machine name of the encoder to load.
+ * @return
+ *   An encoder definition array or NULL if not found.
+ */
+function invisimail_get_encoder($encoder) {
+  $encoders = invisimail_get_encoders();
+  return isset($encoders[$encoder]) ? $encoders[$encoder] : NULL;
+}
+
+/**
+ * Implements hook_filter_info().
+ */
+function invisimail_filter_info() {
+
+  $filters = array();
+
+  foreach (invisimail_get_encoders() as $encoder => $encoder_info) {
+    $filters['invisimail_encode_' . $encoder] = array(
+      'title' => t('Encode email addresses: @label', array('@label' => $encoder_info['label'])),
+      'description' => t('Email addresses will be obfuscated in the page source to reduce the chances of being harvested by spammers.'),
+      'prepare callback' => 'invisimail_encode_prepare',
+      'process callback' => 'invisimail_encode_process',
+      'settings callback' => 'invisimail_encode_settings',
+      'default settings' => array(
+        'encoder' => $encoder,
+        'chunk' => FALSE,
+      ) + $encoder_info['default settings'],
+      'tips callback' => 'invisimail_encode_tips',
+    );
+  }
+
+  return $filters;
+}
+
+function invisimail_encode_process($text, $filter, $format) {
+
+}
+
+/**
+ * Settings callback for all encoding filters.
+ *
+ * This callback will call encoder-specific filtering if appropriate.
+ */
+function invisimail_encode_settings($form, &$form_state, $filter, $format, $defaults) {
+  $settings = array();
+
+  $filter->settings += $defaults;
+
+  $settings['chunk'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Break up text for filtering'),
+    '#weight' => 5,
+    '#default_value' => $filter->settings['chunk'],
+    '#description' => t('Break up the text to be filtered into chunks with and
+                          without anchor tags.  Selecting this option may slow
+                          down the filtering of text slightly, but will provide
+                          better error messages in the <em>Recent log entries</em>
+                          should content not render as you expect it when there
+                          are e-mail addresses to obfuscate.'),
+  );
+
+
+  $encoder = invisimail_get_encoder($defaults['encoder']);
+
+  dpm($encoder);
+
+  if (function_exists($encoder['settings callback'])) {
+    $settings += $encoder['settings callback']($form, $form_state, $filter, $format, $defaults);
+  }
+  elseif ($encoder['settings callback']) {
+    watchdog('invisimail', 'Invalid settings callback: @callback', array('@callback' => $encoder['settings callback']));
+  }
+  // If there was nothing specified, that's not an error and we just continue normally.
+
+  return $settings;
+}
+
+function invisimail_encoder_html_entities_settings($form, &$form_state, $filter, $format, $defaults) {
+
+  $filter->settings += $defaults;
+
+  $settings['link'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Automatically create links from email addresses.'),
+    '#default_value' => $filter->settings['link'],
+    '#description' => t('Selecting "Automatically create links" will convert email addresses into a clickable "mailto:" link.'),
+  );
+
+  return $settings;
+}
+
+/**
+ * Returns the "tips" help text for all invisimail encoders.
+ */
+function invisimail_encode_tips($filter, $format, $long = FALSE) {
+  return t('Email addresses will be obfuscated in the page source to reduce the chances of being harvested by spammers.');
 }
 
 /**
