@@ -227,41 +227,6 @@ function invisimail_encode_tips($filter, $format, $long = FALSE) {
   return t('Email addresses will be obfuscated in the page source to reduce the chances of being harvested by spammers.');
 }
 
-/**
- * Implementation of hook_filter().
- *
- */
-function invisimail_filter($op, $delta = 0, $format = -1, $text = '') {
-  if ($op == 'list') {
-    return array(0 => t('Encode email addresses'));
-  }
-
-  switch ($delta) {
-    case 0:
-      switch ($op) {
-        case 'description':
-          return t('Hide email addresses from spam-bots.');
-
-        case 'prepare':
-          return $text;
-
-        case 'process':
-          return invisimail($text, $format);
-
-        case 'settings':
-          $form['invisimail_settings'] = array(
-            '#type' => 'fieldset',
-            '#title' => t('Invisimail email address encoding filter'),
-            '#collapsible' => TRUE,
-            '#collapsed' => FALSE,
-          );
-          $form['invisimail_settings'] += _invisimail_settings($format);
-
-          return $form;
-      }
-      break;
-  }
-}
 
 function invisimail($string, $format) {
   // The check for the user/name portion of the email address. This is
