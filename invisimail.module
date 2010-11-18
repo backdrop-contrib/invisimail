@@ -46,10 +46,16 @@ function invisimail_menu() {
 }
 
 /**
- * Implementation of hook_perm().
+ * Implements hook_permission().
+ *
+ * @todo This probably goes away once we convert to formatter settings API.
  */
-function invisimail_perm() {
-  return array('administer invisimail formatter');
+function invisimail_permission() {
+    return array(
+    'administer invisimail formatter' =>  array(
+      'title' => t('Administer invisimail formatter settings'),
+    ),
+  );
 }
 
 /**
