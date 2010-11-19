@@ -393,14 +393,13 @@ function _invisimail_process_emails_callback(array $matches) {
   // matched on an <a> tag that didn't have the link text the same as the
   // mailto eMail address, so just replace the eMail address
   if ( $matches[2] != 'mailto:'.$matches[3] ) {
-    return str_replace($matches[2], $settings['callback']($matches[2], $settings),$matches[0]);
+    return str_replace($matches[2], $settings['callback']($matches[2], $settings, TRUE), $matches[0]);
   }
 
   // We DO have an existing link portion. Do our best to preserve it; that means
   // ignoring the js setting, since it makes for heinous string transformations.
   return str_replace(array($matches[2], $matches[3]),
-    array($settings['callback']($matches[2], $settings), $settings['callback']($matches[3], $settings)),
-    $matches[0]);
+    array($settings['callback']($matches[2], $settings, TRUE), $settings['callback']($matches[3], $settings, TRUE)), $matches[0]);
 
 }
 
@@ -608,12 +607,17 @@ function _invisimail_encode_string($string, $js, $link = FALSE) {
   return $encode;
 }
 
-function invisimail_encoder_html_entities_encode($string, $settings = array()) {
+function invisimail_encoder_html_entities_encode($string, $settings = array(), $is_link = FALSE) {
   $encode = '';
   for ($i=0; $i < strlen($string); $i++)   {
     $char = substr($string, $i, 1);
     $encode .= '&#'.ord($char).';';
   }
+
+  if ($settings['link'] && !$is_link) {
+    $encode = '<a href="' . INVISIMAIL_MAILTO_ASCII . "$encode\">$encode</a>";
+  }
+
   return $encode;
 }
 
