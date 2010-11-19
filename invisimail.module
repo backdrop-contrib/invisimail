@@ -455,22 +455,13 @@ function invisimail_encoder_js_entities_encode($string, $settings = array(), $is
   for ($i=0; $i < strlen($string); $i++)   {
     $char = substr($string, $i, 1);
     $encode .= '&#' . ord($char) . ';';
-    if ($settings['link'] && in_array($char, array('.', '@'))) {
-      dpm('Breaking strings for linking');
-      // break strings after ats and dots in links.
-      //$encode .= "'+'";
-    }
   }
 
-  dpm($string, 'String');
-
   if ($settings['link']) {
-    dpm('Making link');
     $mailto = INVISIMAIL_MAILTO_ASCII;
     $replace = "<a href=\"{$mailto}{$encode}\">{$encode}</a>";
   }
   else {
-    dpm('Skipping link');
     $replace = $encode;
   }
 
