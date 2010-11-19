@@ -45,21 +45,6 @@ function invisimail_permission() {
 }
 
 /**
- * Implements hook_invisimail_encoder_info().
- */
-function invisimail_invisimail_encoder_info() {
-
-  $encoders['html_entities'] = array(
-    'label' => t('HTML entities'),
-    'settings callback' => 'invisimail_encoder_html_entities_settings',
-    'encode callback' => 'invisimail_encoder_html_entities_encode',
-  );
-
-  return $encoders;
-
-}
-
-/**
  * Gets a list of all encoders defined in the system.
  *
  * Encoders are defined by hook_invisimail_encoder_info() and use nearly the
@@ -212,23 +197,6 @@ function invisimail_encode_settings($form, &$form_state, $filter, $format, $defa
  */
 function invisimail_encode_tips($filter, $format, $long = FALSE) {
   return t('Email addresses will be obfuscated in the page source to reduce the chances of being harvested by spammers.');
-}
-
-/**
- * Settings form callback for the html_entities encoder.
- */
-function invisimail_encoder_html_entities_settings($form, &$form_state, $filter, $format, $defaults) {
-
-  $filter->settings += $defaults;
-
-  $settings['link'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Automatically create links from email addresses.'),
-    '#default_value' => $filter->settings['link'],
-    '#description' => t('Selecting "Automatically create links" will convert email addresses into a clickable "mailto:" link.'),
-  );
-
-  return $settings;
 }
 
 /**
@@ -387,8 +355,25 @@ function _invisimail_process_emails_callback(array $matches) {
   // ignoring the js setting, since it makes for heinous string transformations.
   return str_replace(array($matches[2], $matches[3]),
     array($settings['callback']($matches[2], $settings, TRUE), $settings['callback']($matches[3], $settings, TRUE)), $matches[0]);
-
 }
+
+// ---------- Implementations of the core engine ---------- //
+
+/**
+ * Implements hook_invisimail_encoder_info().
+ */
+function invisimail_invisimail_encoder_info() {
+
+  $encoders['html_entities'] = array(
+    'label' => t('HTML entities'),
+    'settings callback' => 'invisimail_encoder_html_entities_settings',
+    'encode callback' => 'invisimail_encoder_html_entities_encode',
+  );
+
+  return $encoders;
+}
+
+// ----- HTML Entities encoder ----- //
 
 /**
  * Encoding callback for the html_entities encoder.
@@ -406,3 +391,22 @@ function invisimail_encoder_html_entities_encode($string, $settings = array(), $
 
   return $encode;
 }
+
+
+/**
+ * Settings form callback for the html_entities encoder.
+ */
+function invisimail_encoder_html_entities_settings($form, &$form_state, $filter, $format, $defaults) {
+
+  $filter->settings += $defaults;
+
+  $settings['link'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Automatically create links from email addresses.'),
+    '#default_value' => $filter->settings['link'],
+    '#description' => t('Selecting "Automatically create links" will convert email addresses into a clickable "mailto:" link.'),
+  );
+
+  return $settings;
+}
+
