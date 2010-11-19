@@ -299,7 +299,7 @@ function invisimail_process_emails($string, $callback, $settings = array()) {
 /**
  * Callback function used by preg_replace_callback.
  *
- * Expects the regex pattern defined in invisimail_process_emails() to be used.
+ * Expects the regex pattern defined in _invisimail_email_matching_regexes() to be used.
  *
  * @param array $matches
  *  An array of matched patterns from our regex. Any match will have four keys,
@@ -416,7 +416,7 @@ function invisimail_encoder_html_entities_encode($string, $settings = array(), $
 // ----- Javascript encoder ----- //
 
 /**
- * Settings form callback for the html_entities encoder.
+ * Settings form callback for the js_entities encoder.
  */
 function invisimail_encoder_js_entities_settings($form, &$form_state, $filter, $format, $defaults) {
 
@@ -433,10 +433,21 @@ function invisimail_encoder_js_entities_settings($form, &$form_state, $filter, $
 }
 
 /**
- * Encoding callback for the html_entities encoder.
+ * Encoding callback for the js_entities encoder.
+ *
+ * Note that a link that is already a link cannot be Javascript encoded, since
+ * the link element is already created.  Instead we just fallback to HTML
+ * encoding in that case.  A best-attempt will be made, however, to handle
+ * non-existing-links properly, possibly turning them into links if so
+ * configured.
+ *
  */
 function invisimail_encoder_js_entities_encode($string, $settings = array(), $is_link = FALSE) {
   static $counter = 1;
+
+  if ($is_link) {
+    return invisimail_encoder_html_entities_encode($string, $settings, $is_link);
+  }
 
   // First encode the string as HTML entities, which will then be Javascript-
   // injected into the page.
@@ -451,9 +462,12 @@ function invisimail_encoder_js_entities_encode($string, $settings = array(), $is
     }
   }
 
-  if ($settings['link'] && !$is_link) {
+  dpm($string, 'String');
+
+  if ($settings['link']) {
     dpm('Making link');
-    $replace = "<a href=\"" . INVISIMAIL_MAILTO_ASCII . "'+'$encode'+'\">'+'{{$encode}' + '</a>'";
+    $mailto = INVISIMAIL_MAILTO_ASCII;
+    $replace = "<a href=\"{$mailto}{$encode}\">{$encode}</a>";
   }
   else {
     dpm('Skipping link');
