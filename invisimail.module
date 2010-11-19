@@ -355,6 +355,29 @@ function _invisimail_process_emails_callback(array $matches) {
     array($settings['callback']($matches[2], $settings, TRUE), $settings['callback']($matches[3], $settings, TRUE)), $matches[0]);
 }
 
+/**
+ * Translates a string into its HTML entity version.
+ *
+ * Unlike PHP's htmlentities() and htmlspecialchars() functions, this function
+ * will convert all characters in the string unequivocably.  That makes it useful
+ * for obfuscation, since browsers will treat the string exactly the same but
+ * most humans and spambots won't have a clue how to read it.
+ *
+ * @param string $string
+ *   An arbitrary string to encode as HTML entities.
+ * @return string
+ *   The same string encoded in raw, obfuscated HTML entities.
+ */
+function invisimail_encode_html($string) {
+  $encode = '';
+  for ($i=0; $i < strlen($string); $i++)   {
+    $char = substr($string, $i, 1);
+    $encode .= '&#'.ord($char).';';
+  }
+
+  return $encode;
+}
+
 // ---------- Implementations of the core engine ---------- //
 
 /**
@@ -400,11 +423,7 @@ function invisimail_encoder_html_entities_settings($form, &$form_state, $filter,
  * Encoding callback for the html_entities encoder.
  */
 function invisimail_encoder_html_entities_encode($string, $settings = array(), $is_link = FALSE) {
-  $encode = '';
-  for ($i=0; $i < strlen($string); $i++)   {
-    $char = substr($string, $i, 1);
-    $encode .= '&#'.ord($char).';';
-  }
+  $encode = invisimail_encode_html($string);
 
   if ($settings['link'] && !$is_link) {
     $encode = '<a href="' . INVISIMAIL_MAILTO_ASCII . "$encode\">$encode</a>";
@@ -445,32 +464,34 @@ function invisimail_encoder_js_entities_settings($form, &$form_state, $filter, $
 function invisimail_encoder_js_entities_encode($string, $settings = array(), $is_link = FALSE) {
   static $counter = 1;
 
-  if ($is_link) {
-    return invisimail_encoder_html_entities_encode($string, $settings, $is_link);
-  }
-
   // First encode the string as HTML entities, which will then be Javascript-
   // injected into the page.
-  $encode = '';
-  for ($i=0; $i < strlen($string); $i++)   {
-    $char = substr($string, $i, 1);
-    $encode .= '&#' . ord($char) . ';';
+  $encode = invisimail_encode_html($string);
+
+  // If the email address is already inside a link we cannot use JS encoding on
+  // it, since we cannot modify the <a> element and cannot inject our placeholder
+  // span inside the href itself.  We therefore don't bother and just use the
+  // basic HTML encoding.
+  if ($is_link) {
+    return $encode;
   }
 
   if ($settings['link']) {
     $mailto = INVISIMAIL_MAILTO_ASCII;
-    $replace = "<a href=\"{$mailto}{$encode}\">{$encode}</a>";
-  }
-  else {
-    $replace = $encode;
+    $encode = "<a href=\"{$mailto}{$encode}\">{$encode}</a>";
   }
 
-  $link_id = "mailto_link_{$counter}";
+  // We have to obfuscate the ID to avoid having a regular pattern for the names.
+  // if we had an ID format like "invisimail_$counter", then spambots could
+  // easily detect that string and know to parse the HTML entities that follow
+  // back into an email address.  We use sha1() instead of md5() because md5()
+  // is not allowed at all on government sites due to paranoia.
+  $link_id = sha1("mailto_link_{$counter}");
   $counter++;
   $output = <<<JS
   <span id="{$link_id}"></span>
 <script type="text/javascript"> <!--
-  document.getElementById('{$link_id}').innerHTML = '{$replace}';
+  document.getElementById('{$link_id}').innerHTML = '{$encode}';
 // --> </script>
 JS;
 
