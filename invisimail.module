@@ -119,10 +119,8 @@ function invisimail_filter_info() {
  * This callback will route the text to be processed to the general processor,
  * which in turn will route individual email addresses to the appropriate encoder.
  */
-function invisimail_encode_process($text, $filter, $format, $langcode, &$cache, $cache_id) {
+function invisimail_encode_process($text, $filter, $format, $langcode, $cache, $cache_id) {
   $encoder = invisimail_get_encoder($filter->settings['encoder']);
-
-  $cache = FALSE;
 
   if (function_exists($encoder['encode callback'])) {
     return invisimail_process_emails($text, $encoder['encode callback'], $filter->settings);
@@ -370,28 +368,16 @@ function invisimail_invisimail_encoder_info() {
     'encode callback' => 'invisimail_encoder_html_entities_encode',
   );
 
+  $encoders['js_entities'] = array(
+    'label' => t('Javascript-wrapped HTML entities'),
+    'settings callback' => 'invisimail_encoder_js_entities_settings',
+    'encode callback' => 'invisimail_encoder_js_entities_encode',
+  );
+
   return $encoders;
 }
 
 // ----- HTML Entities encoder ----- //
-
-/**
- * Encoding callback for the html_entities encoder.
- */
-function invisimail_encoder_html_entities_encode($string, $settings = array(), $is_link = FALSE) {
-  $encode = '';
-  for ($i=0; $i < strlen($string); $i++)   {
-    $char = substr($string, $i, 1);
-    $encode .= '&#'.ord($char).';';
-  }
-
-  if ($settings['link'] && !$is_link) {
-    $encode = '<a href="' . INVISIMAIL_MAILTO_ASCII . "$encode\">$encode</a>";
-  }
-
-  return $encode;
-}
-
 
 /**
  * Settings form callback for the html_entities encoder.
@@ -410,3 +396,78 @@ function invisimail_encoder_html_entities_settings($form, &$form_state, $filter,
   return $settings;
 }
 
+/**
+ * Encoding callback for the html_entities encoder.
+ */
+function invisimail_encoder_html_entities_encode($string, $settings = array(), $is_link = FALSE) {
+  $encode = '';
+  for ($i=0; $i < strlen($string); $i++)   {
+    $char = substr($string, $i, 1);
+    $encode .= '&#'.ord($char).';';
+  }
+
+  if ($settings['link'] && !$is_link) {
+    $encode = '<a href="' . INVISIMAIL_MAILTO_ASCII . "$encode\">$encode</a>";
+  }
+
+  return $encode;
+}
+
+// ----- Javascript encoder ----- //
+
+/**
+ * Settings form callback for the html_entities encoder.
+ */
+function invisimail_encoder_js_entities_settings($form, &$form_state, $filter, $format, $defaults) {
+
+  $filter->settings += $defaults;
+
+  $settings['link'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Automatically create links from email addresses.'),
+    '#default_value' => $filter->settings['link'],
+    '#description' => t('Selecting "Automatically create links" will convert email addresses into a clickable "mailto:" link.'),
+  );
+
+  return $settings;
+}
+
+/**
+ * Encoding callback for the html_entities encoder.
+ */
+function invisimail_encoder_js_entities_encode($string, $settings = array(), $is_link = FALSE) {
+  static $counter = 1;
+
+  // First encode the string as HTML entities, which will then be Javascript-
+  // injected into the page.
+  $encode = '';
+  for ($i=0; $i < strlen($string); $i++)   {
+    $char = substr($string, $i, 1);
+    $encode .= '&#' . ord($char) . ';';
+    if ($settings['link'] && in_array($char, array('.', '@'))) {
+      dpm('Breaking strings for linking');
+      // break strings after ats and dots in links.
+      //$encode .= "'+'";
+    }
+  }
+
+  if ($settings['link'] && !$is_link) {
+    dpm('Making link');
+    $replace = "<a href=\"" . INVISIMAIL_MAILTO_ASCII . "'+'$encode'+'\">'+'{{$encode}' + '</a>'";
+  }
+  else {
+    dpm('Skipping link');
+    $replace = $encode;
+  }
+
+  $link_id = "mailto_link_{$counter}";
+  $counter++;
+  $output = <<<JS
+  <span id="{$link_id}"></span>
+<script type="text/javascript"> <!--
+  document.getElementById('{$link_id}').innerHTML = '{$replace}';
+// --> </script>
+JS;
+
+  return $output;
+}
