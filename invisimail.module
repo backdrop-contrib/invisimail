@@ -159,15 +159,32 @@ function invisimail_encode_prepare($text, $filter, $format, $langcode, $cache, $
  * This callback will call encoder-specific filtering if appropriate.
  */
 function invisimail_encode_settings($form, &$form_state, $filter, $format, $defaults) {
-  $settings = array();
+ 
+  $settings = $filter->settings + $defaults;
 
-  $filter->settings += $defaults;
+  return invisimail_settings_form($form, $form_state, $defaults['encoder'], $settings);
+}
 
-  $settings['chunk'] = array(
+/**
+ * Returns the form fragment for a given encoder's settings form.
+ *
+ * @param $form
+ *   The form we are adding to.
+ * @param $form_state
+ *   The state of the form we are adding to.
+ * @param string $encoder
+ *   The name of the encoder whose settings form we want.
+ * @param array $settings
+ *   The current settings for the form fragment values.
+ * @return array
+ *   A form fragment.
+ */
+function invisimail_settings_form($form, &$form_state, $encoder, array $settings) {
+  $element['chunk'] = array(
     '#type' => 'checkbox',
     '#title' => t('Break up text for filtering'),
     '#weight' => 5,
-    '#default_value' => $filter->settings['chunk'],
+    '#default_value' => $settings['chunk'],
     '#description' => t('Break up the text to be filtered into chunks with and
                           without anchor tags.  Selecting this option may slow
                           down the filtering of text slightly, but will provide
@@ -176,18 +193,17 @@ function invisimail_encode_settings($form, &$form_state, $filter, $format, $defa
                           are e-mail addresses to obfuscate.'),
   );
 
-
-  $encoder = invisimail_get_encoder($defaults['encoder']);
+  $encoder = invisimail_get_encoder($settings['encoder']);
 
   if (function_exists($encoder['settings callback'])) {
-    $settings += $encoder['settings callback']($form, $form_state, $filter, $format, $defaults);
+    $element += $encoder['settings callback']($form, $form_state, $settings);
   }
   elseif ($encoder['settings callback']) {
     watchdog('invisimail', 'Invalid settings callback: @callback', array('@callback' => $encoder['settings callback']));
   }
   // If there was nothing specified, that's not an error and we just continue normally.
 
-  return $settings;
+  return $element;
 }
 
 /**
@@ -384,15 +400,14 @@ function invisimail_encode_html($string) {
  * Implements hook_field_formatter_info().
  */
 function invisimail_field_formatter_info() {
-  $formats = array(
-    'invisimail' => array(
-      'label' => t('Invisimail'),
+
+  foreach (invisimail_get_encoders() as $encoder => $encoder_info) {
+    $formats['invisimail_' . $encoder] = array(
+      'label' => t('Invisimail: @encoder', array('@encoder' => $encoder_info['label'])),
       'field types' => array('email'),
-      'settings' => array(
-        'encoder' => 'html_entities',
-      ),
-    ),
-  );
+      'settings' => $encoder_info['default settings'] + array('encoder' => $encoder),
+    );
+  }
 
   return $formats;
 }
@@ -404,20 +419,18 @@ function invisimail_field_formatter_view($entity_type, $entity, $field, $instanc
   $element = array();
   $settings = $display['settings'];
 
-  switch ($display['type']) {
-    case 'invisimail':
-      foreach ($items as $delta => $item) {
-        dpm($item);
-        dpm($settings);
-        $encoder = invisimail_get_encoder($settings['encoder']);
-        $encoder_settings = $settings + $encoder['default settings'];
-        
-        $element[$delta] = array('#markup' => $encoder['encode callback']($item['email'], $encoder_settings));
-      }
-      break;
+  foreach ($items as $delta => $item) {
+    $element[$delta] = array('#markup' => invisimail_encode_string($item['email'], $settings['encoder'], $settings));
   }
 
   return $element;
+}
+
+function invisimail_encode_string($string, $encoder, $settings, $is_link = FALSE) {
+  $encoder_info = invisimail_get_encoder($encoder);
+  $encoder_settings = $settings + $encoder_info['default settings'];
+
+  return $encoder_info['encode callback']($string, $settings, $is_link);
 }
 
 /**
@@ -427,23 +440,7 @@ function invisimail_field_formatter_settings_form($field, $instance, $view_mode,
   $display = $instance['display'][$view_mode];
   $settings = $display['settings'];
 
-  $element = array();
-
-  if ($display['type'] == 'invisimail') {
-    foreach (invisimail_get_encoders() as $key => $encoder) {
-      $options[$key] = $encoder['label'];
-    }
-
-    $element['encoder'] = array(
-      '#type' => 'select',
-      '#title' => t('Encoder'),
-      '#description' => t('Select the encoder that will be used to obfuscate email addresses to hide them from spam bots.'),
-      '#options' => $options,
-      '#default_value' => $settings['encoder'],
-    );
-  }
-
-  return $element;
+  return invisimail_settings_form($form, $form_state, $settings['encoder'], $settings);
 }
 
 /**
@@ -460,7 +457,7 @@ function invisimail_field_formatter_settings_summary($field, $instance, $view_mo
     $summary = t('Email addresses will be encoded using the %encoder encoder.', array('%encoder' => $encoder['label']));
   }
 
-  return $summary;
+  return t('Hello world');
 }
 
 // ---------- Implementations of the core engine ---------- //
@@ -493,18 +490,16 @@ function invisimail_invisimail_encoder_info() {
 /**
  * Settings form callback for the html_entities encoder.
  */
-function invisimail_encoder_html_entities_settings($form, &$form_state, $filter, $format, $defaults) {
+function invisimail_encoder_html_entities_settings($form, &$form_state, $settings) {
 
-  $filter->settings += $defaults;
-
-  $settings['link'] = array(
+  $element['link'] = array(
     '#type' => 'checkbox',
     '#title' => t('Automatically create links from email addresses.'),
-    '#default_value' => $filter->settings['link'],
+    '#default_value' => $settings['link'],
     '#description' => t('Selecting "Automatically create links" will convert email addresses into a clickable "mailto:" link.'),
   );
 
-  return $settings;
+  return $element;
 }
 
 /**
@@ -525,18 +520,16 @@ function invisimail_encoder_html_entities_encode($string, $settings = array(), $
 /**
  * Settings form callback for the js_entities encoder.
  */
-function invisimail_encoder_js_entities_settings($form, &$form_state, $filter, $format, $defaults) {
+function invisimail_encoder_js_entities_settings($form, &$form_state, $settings) {
 
-  $filter->settings += $defaults;
-
-  $settings['link'] = array(
+  $element['link'] = array(
     '#type' => 'checkbox',
     '#title' => t('Automatically create links from email addresses.'),
-    '#default_value' => $filter->settings['link'],
+    '#default_value' => $settings['link'],
     '#description' => t('Selecting "Automatically create links" will convert email addresses into a clickable "mailto:" link.'),
   );
 
-  return $settings;
+  return $element;
 }
 
 /**
