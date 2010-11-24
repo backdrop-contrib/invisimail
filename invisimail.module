@@ -66,7 +66,7 @@ function invisimail_get_encoders() {
         'settings callback' => '',
         'prepare callback' => '',
         'encode callback' => '',
-        'default settings' => array('link' => 0),
+        'default settings' => array(),
       );
     }
     drupal_alter('invisimail_encoder_info', $encoders);
@@ -378,6 +378,91 @@ function invisimail_encode_html($string) {
   return $encode;
 }
 
+// ---------- Field Formatter implementations ---------- //
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function invisimail_field_formatter_info() {
+  $formats = array(
+    'invisimail' => array(
+      'label' => t('Invisimail'),
+      'field types' => array('email'),
+      'settings' => array(
+        'encoder' => 'html_entities',
+      ),
+    ),
+  );
+
+  return $formats;
+}
+
+/**
+ * Implements callback_field_formatter_view().
+ */
+function invisimail_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+  $settings = $display['settings'];
+
+  switch ($display['type']) {
+    case 'invisimail':
+      foreach ($items as $delta => $item) {
+        dpm($item);
+        dpm($settings);
+        $encoder = invisimail_get_encoder($settings['encoder']);
+        $encoder_settings = $settings + $encoder['default settings'];
+        
+        $element[$delta] = array('#markup' => $encoder['encode callback']($item['email'], $encoder_settings));
+      }
+      break;
+  }
+
+  return $element;
+}
+
+/**
+ * Implements callback_field_formatter_settings_form().
+ */
+function invisimail_field_formatter_settings_form($field, $instance, $view_mode, $form, &$form_state) {
+  $display = $instance['display'][$view_mode];
+  $settings = $display['settings'];
+
+  $element = array();
+
+  if ($display['type'] == 'invisimail') {
+    foreach (invisimail_get_encoders() as $key => $encoder) {
+      $options[$key] = $encoder['label'];
+    }
+
+    $element['encoder'] = array(
+      '#type' => 'select',
+      '#title' => t('Encoder'),
+      '#description' => t('Select the encoder that will be used to obfuscate email addresses to hide them from spam bots.'),
+      '#options' => $options,
+      '#default_value' => $settings['encoder'],
+    );
+  }
+
+  return $element;
+}
+
+/**
+ * Implements callback_field_formatter_settings_summary().
+ */
+function invisimail_field_formatter_settings_summary($field, $instance, $view_mode) {
+  $display = $instance['display'][$view_mode];
+  $settings = $display['settings'];
+
+  $summary = '';
+
+  if ($display['type'] == 'invisimail') {
+    $encoder = invisimail_get_encoder($settings['encoder']);
+    $summary = t('Email addresses will be encoded using the %encoder encoder.', array('%encoder' => $encoder['label']));
+  }
+
+  return $summary;
+}
+
 // ---------- Implementations of the core engine ---------- //
 
 /**
@@ -389,12 +474,15 @@ function invisimail_invisimail_encoder_info() {
     'label' => t('HTML entities'),
     'settings callback' => 'invisimail_encoder_html_entities_settings',
     'encode callback' => 'invisimail_encoder_html_entities_encode',
+    'default settings' => array('link' => 0),
+
   );
 
   $encoders['js_entities'] = array(
     'label' => t('Javascript-wrapped HTML entities'),
     'settings callback' => 'invisimail_encoder_js_entities_settings',
     'encode callback' => 'invisimail_encoder_js_entities_encode',
+    'default settings' => array('link' => 0),
   );
 
   return $encoders;
