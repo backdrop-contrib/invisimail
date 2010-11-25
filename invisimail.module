@@ -123,7 +123,7 @@ function invisimail_encode_process($text, $filter, $format, $langcode, $cache, $
   $encoder = invisimail_get_encoder($filter->settings['encoder']);
 
   if (function_exists($encoder['encode callback'])) {
-    return invisimail_process_emails($text, $encoder['encode callback'], $filter->settings);
+    return invisimail_encode_string($text, $filter->settings['encoder'], $filter->settings);
   }
   elseif ($encoder['encode callback']) {
     // Process is required, so there's no default passthrough option here.
@@ -259,10 +259,24 @@ function _invisimail_email_matching_regexes() {
   );
 }
 
-function invisimail_process_emails($string, $callback, $settings = array()) {
+/**
+ * Encodes all email addresses in a string using the specified encoder.
+ *
+ * @param string $string
+ *   The string to encode.
+ * @param string $encoder_id
+ *   The machine name of the encoder to use.
+ * @param array $settings
+ *   The settings to use for the specified encoder.
+ * @return string
+ *   The original string with email addresses obfuscated from spambots.
+ */
+function invisimail_encode_string($string, $encoder_id, array $settings = array()) {
+  $encoder = invisimail_get_encoder($encoder_id);
+
   // PHP doens't allow preg callbacks to take arguments, so we have to toss
-  // the configuration options into a global temporarily.  this is so disgusting.
-  $settings['callback'] = $callback;
+  // the configuration options into a global temporarily.  This is so disgusting.
+  $settings['callback'] = $encoder['encode callback'];
   $GLOBALS['invisimail_settings'] = $settings;
 
   $patterns = _invisimail_email_matching_regexes();
@@ -394,6 +408,27 @@ function invisimail_encode_html($string) {
   return $encode;
 }
 
+/**
+ * Encodes a single email address using the specified encoder.
+ *
+ * @param string $email
+ *   The email address to encode.
+ * @param string $encoder
+ *   The machine name of the encoder to use.
+ * @param array $settings
+ *   An array of settings for this encoder.  If not specified, the encoder
+ *   defaults will be used.
+ * @return string
+ *   The encoded email address.
+ */
+function invisimail_encode_email($email, $encoder, array $settings = array()) {
+  $encoder_info = invisimail_get_encoder($encoder);
+  $encoder_settings = $settings + $encoder_info['default settings'];
+
+  return $encoder_info['encode callback']($email, $settings, FALSE);
+}
+
+
 // ---------- Field Formatter implementations ---------- //
 
 /**
@@ -420,17 +455,10 @@ function invisimail_field_formatter_view($entity_type, $entity, $field, $instanc
   $settings = $display['settings'];
 
   foreach ($items as $delta => $item) {
-    $element[$delta] = array('#markup' => invisimail_encode_string($item['email'], $settings['encoder'], $settings));
+    $element[$delta] = array('#markup' => invisimail_encode_email($item['email'], $settings['encoder'], $settings));
   }
 
   return $element;
-}
-
-function invisimail_encode_string($string, $encoder, $settings, $is_link = FALSE) {
-  $encoder_info = invisimail_get_encoder($encoder);
-  $encoder_settings = $settings + $encoder_info['default settings'];
-
-  return $encoder_info['encode callback']($string, $settings, $is_link);
 }
 
 /**
