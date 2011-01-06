@@ -11,19 +11,6 @@ define('INVISIMAIL_MAILTO_ASCII', '&#109;&#97;&#105;&#108;&#116;&#111;&#58;');
  */
 
 /**
- * Implements hook_permission().
- *
- * @todo This probably goes away once we convert to formatter settings API.
- */
-function invisimail_permission() {
-    return array(
-    'administer invisimail formatter' =>  array(
-      'title' => t('Administer invisimail formatter settings'),
-    ),
-  );
-}
-
-/**
  * Gets a list of all encoders defined in the system.
  *
  * Encoders are defined by hook_invisimail_encoder_info() and use nearly the
