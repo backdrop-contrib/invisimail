@@ -1,5 +1,4 @@
 <?php
-// $Id$
 
 define('INVISIMAIL_MAILTO_ASCII', '&#109;&#97;&#105;&#108;&#116;&#111;&#58;');
 

@@ -1,5 +1,4 @@
 <?php
-// $Id$
 
 /**
  * Defines encoders available to invisimail to get turned into formatters.
