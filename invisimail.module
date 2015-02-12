@@ -264,7 +264,7 @@ function invisimail_encode_string($string, $encoder_id, array $settings = array(
       watchdog('invisimail', 'preg_replace_callback failed on first pass with preg_last_error() of !code with pattern %pattern on text: !text',
             array(
               '!code'=>$error_code,
-              '%pattern' => check_plain($pattern_diff_link_text),
+              '%pattern' => check_plain($patterns['same_link']),
               '!text' => check_plain($phrase),
             ),
             WATCHDOG_ERROR,
@@ -275,7 +275,7 @@ function invisimail_encode_string($string, $encoder_id, array $settings = array(
       watchdog('invisimail', 'preg_replace_callback failed on second pass with preg_last_error() of !code with pattern %pattern on text: !text',
             array(
               '!code'=>$error_code,
-              '%pattern' => check_plain($pattern_same_link_text),
+              '%pattern' => check_plain($patterns['diff_link']),
               '!text' => check_plain($phrase),
             ),
             WATCHDOG_ERROR,
