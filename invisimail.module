@@ -1,7 +1,6 @@
 <?php
 
 define('INVISIMAIL_MAILTO_ASCII', '&#109;&#97;&#105;&#108;&#116;&#111;&#58;');
-
 /**
  * @file
  * This module provides a filter that will search content for email addresses
@@ -445,12 +444,12 @@ function invisimail_field_formatter_settings_summary($field, $instance, $view_mo
 
   $summary = '';
 
-  if ($display['type'] == 'invisimail') {
+  if ($display['module'] == 'invisimail') {
     $encoder = invisimail_get_encoder($settings['encoder']);
     $summary = t('Email addresses will be encoded using the %encoder encoder.', array('%encoder' => $encoder['label']));
   }
 
-  return t('Hello world');
+  return $summary;
 }
 
 // ---------- Implementations of the core engine ---------- //
