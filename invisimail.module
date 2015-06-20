@@ -21,7 +21,7 @@ define('INVISIMAIL_MAILTO_ASCII', '&#109;&#97;&#105;&#108;&#116;&#111;&#58;');
  */
 function invisimail_get_encoders() {
 
-  $encoders = &drupal_static(__FUNCTION__, array());
+  $encoders = &backdrop_static(__FUNCTION__, array());
 
   if (empty($encoders)) {
     $encoders = module_invoke_all('invisimail_encoder_info');
@@ -33,7 +33,7 @@ function invisimail_get_encoders() {
         'default settings' => array(),
       );
     }
-    drupal_alter('invisimail_encoder_info', $encoders);
+    backdrop_alter('invisimail_encoder_info', $encoders);
   }
 
   return $encoders;
