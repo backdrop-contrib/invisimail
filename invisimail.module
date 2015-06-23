@@ -122,11 +122,13 @@ function invisimail_encode_prepare($text, $filter, $format, $langcode, $cache, $
  *
  * This callback will call encoder-specific filtering if appropriate.
  */
-function invisimail_encode_settings($form, &$form_state, $filter, $format, $defaults) {
+function invisimail_encode_settings($form, &$form_state, $format) {
 
-  $settings = $filter->settings + $defaults;
+  $settings = $format->settings;
+  $filter = $format->settings['encoder'];
 
-  return invisimail_settings_form($form, $form_state, $defaults['encoder'], $settings);
+  return invisimail_settings_form($form, $form_state, $filter, $settings);
+;
 }
 
 /**
