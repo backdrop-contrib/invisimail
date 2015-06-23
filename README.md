@@ -4,9 +4,10 @@
 This module is a port to Backdrop of the Drupal contributed module 'Invisimail'. 
 Invisimail provides a content filter to hide email addresses from spam-bots. 
 Email addresses are converted to ascii code and optionally written to the page 
-using a concatenated JavaScript "write" command. The email addresses will 
-appear on the page normally, but their html source will be obscured so as not 
-to appear as an email address to email harvesting robots. 
+using a concatenated JavaScript "write" command. 
+
+The email addresses will appear on the page normally, but their html source 
+will be obscured so as not to appear as an email address to email harvesting robots. 
 Invisimail also provides an option to automatically create mailto links 
 for email addresses.
 
@@ -19,6 +20,7 @@ This port to Backdrop is ready for installation and testing but is not yet prove
 
 Install this module in the usual way.
 You will then find two more filter option in Text Formats.
+
 1. Encode email addresses: HTML entities 
 2. Encode email addresses: Javascript-wrapped HTML entities 
 
