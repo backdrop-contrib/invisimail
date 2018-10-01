@@ -355,7 +355,7 @@ function _invisimail_process_emails_callback(array $matches) {
  * Translates a string into its HTML entity version.
  *
  * Unlike PHP's htmlentities() and htmlspecialchars() functions, this function
- * will convert all characters in the string unequivocably.  That makes it useful
+ * will convert all characters in the string unequivocably. That makes it useful
  * for obfuscation, since browsers will treat the string exactly the same but
  * most humans and spambots won't have a clue how to read it.
  *
@@ -365,13 +365,30 @@ function _invisimail_process_emails_callback(array $matches) {
  *   The same string encoded in raw, obfuscated HTML entities.
  */
 function invisimail_encode_html($string) {
-  $encode = '';
-  for ($i=0; $i < strlen($string); $i++)   {
-    $char = substr($string, $i, 1);
-    $encode .= '&#'.ord($char).';';
+  // Split string into individual characters.
+  $chars = str_split($string);
+
+  foreach ($chars as $key => $char) {
+    $ord = ord($char);
+
+    // Ignore non-ascii characters.
+    if ($ord < 128) {
+      $rand = rand(1, 100);
+
+      // Randomly encode as decimal or hex (45%), or leave unencoded (10%).
+      if ($rand > 90 && strpos('@."&>', $char) === FALSE) {
+        // Leave unencoded.
+      }
+      elseif ($rand < 45) {
+        $chars[$key] = '&#x' . dechex($ord) . ';';
+      }
+      else {
+        $chars[$key] = '&#'. $ord . ';';
+      }
+    }
   }
 
-  return $encode;
+  return implode('', $chars);
 }
 
 /**
